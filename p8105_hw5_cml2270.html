@@ -217,28 +217,20 @@ hom_df = read_csv(url(urlfile)) %&gt;%
 ## ℹ Use `spec()` to retrieve the full column specification for this data.
 ## ℹ Specify the column types or set `show_col_types = FALSE` to quiet this message.</code></pre>
 <p>The homicides dataset contains 53179 observations of 12 variables, these variables include LITERALLY HOW DO YOU DO THIS/???</p>
-<pre class="r"><code>hom_df %&gt;% 
- group_by(city_state, disposition) %&gt;%
-  summarise(n_unsolved = n()) %&gt;% 
-  #group_by(city_state, disposition) %&gt;% 
-  filter(disposition == &quot;Closed without arrest&quot; | 
-           disposition == &quot;Open/No arrest&quot;)</code></pre>
+<pre class="r"><code>n_homs =
+  hom_df %&gt;% 
+  group_by(city_state, disposition) %&gt;%
+  summarise(n_hom_type = n()) %&gt;% 
+  mutate(n_hom_type = as.numeric(n_hom_type)) %&gt;% 
+  pivot_wider(names_from = disposition,
+              values_from = n_hom_type
+  ) %&gt;% 
+  mutate(`Closed without arrest` = replace_na(`Closed without arrest`, 0)) %&gt;% 
+  mutate(`Open/No arrest` = replace_na(`Open/No arrest`, 0)) %&gt;% 
+  mutate(n_total_homs = sum(`Closed by arrest`, `Closed without arrest` , `Open/No arrest`)) %&gt;% 
+  mutate(n_unsolved = sum(`Closed without arrest`, `Open/No arrest`)) %&gt;% 
+  select(city_state, n_total_homs, n_unsolved)</code></pre>
 <pre><code>## `summarise()` has grouped output by &#39;city_state&#39;. You can override using the `.groups` argument.</code></pre>
-<pre><code>## # A tibble: 95 × 3
-## # Groups:   city_state [50]
-##    city_state      disposition           n_unsolved
-##    &lt;chr&gt;           &lt;chr&gt;                      &lt;int&gt;
-##  1 Albuquerque, NM Closed without arrest         52
-##  2 Albuquerque, NM Open/No arrest                94
-##  3 Atlanta, GA     Closed without arrest         58
-##  4 Atlanta, GA     Open/No arrest               315
-##  5 Baltimore, MD   Closed without arrest        152
-##  6 Baltimore, MD   Open/No arrest              1673
-##  7 Baton Rouge, LA Closed without arrest         16
-##  8 Baton Rouge, LA Open/No arrest               180
-##  9 Birmingham, AL  Closed without arrest         64
-## 10 Birmingham, AL  Open/No arrest               283
-## # … with 85 more rows</code></pre>
 </div>
 </div>
 

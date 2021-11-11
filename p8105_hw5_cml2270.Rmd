@@ -33,7 +33,7 @@ scale_fill_discrete = scale_fill_viridis_d
 
 ### Installing and Describing the WaPo Homicides Data
 
-```{r}
+```{r load data}
 
 urlfile = "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
 
@@ -44,14 +44,21 @@ hom_df = read_csv(url(urlfile)) %>%
 
 The homicides dataset contains 53179 observations of 12 variables, these variables include LITERALLY HOW DO YOU DO THIS/???
 
-```{r}
+```{r clean data}
 
-hom_df %>% 
- group_by(city_state, disposition) %>%
-  summarise(n_unsolved = n()) %>% 
-  #group_by(city_state, disposition) %>% 
-  filter(disposition == "Closed without arrest" | 
-           disposition == "Open/No arrest")
+n_homs =
+  hom_df %>% 
+  group_by(city_state, disposition) %>%
+  summarise(n_hom_type = n()) %>% 
+  mutate(n_hom_type = as.numeric(n_hom_type)) %>% 
+  pivot_wider(names_from = disposition,
+              values_from = n_hom_type
+  ) %>% 
+  mutate(`Closed without arrest` = replace_na(`Closed without arrest`, 0)) %>% 
+  mutate(`Open/No arrest` = replace_na(`Open/No arrest`, 0)) %>% 
+  mutate(n_total_homs = sum(`Closed by arrest`, `Closed without arrest` , `Open/No arrest`)) %>% 
+  mutate(n_unsolved = sum(`Closed without arrest`, `Open/No arrest`)) %>% 
+  select(city_state, n_total_homs, n_unsolved)
 
 ```
 
