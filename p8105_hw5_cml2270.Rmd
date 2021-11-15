@@ -13,6 +13,8 @@ library(tidyverse)
 library(readr)
 getwd()
 
+set.seed(1)
+
 knitr::opts_chunk$set(
   fig.width = 10,
   fig.asp = .6,
@@ -35,11 +37,16 @@ scale_fill_discrete = scale_fill_viridis_d
 
 #### Installing and Describing the WaPo Homicides Data
 
+DO THE REMOVE WITHIN THE READ CSV CALL
+
+COUNT(VARIABLE NAME)
+
 ```{r load data}
 
 urlfile = "https://raw.githubusercontent.com/washingtonpost/data-homicides/master/homicide-data.csv"
 
-hom_df = read_csv(url(urlfile)) %>% 
+hom_df = 
+  read_csv(url(urlfile)) %>% 
    mutate(city_state = str_c(city, ", ", state))
   
 ```
@@ -60,7 +67,8 @@ n_homs =
   mutate(`Open/No arrest` = replace_na(`Open/No arrest`, 0)) %>% 
   mutate(n_total_homs = sum(`Closed by arrest`, `Closed without arrest` , `Open/No arrest`)) %>% 
   mutate(n_unsolved = sum(`Closed without arrest`, `Open/No arrest`)) %>% 
-  select(city_state, n_total_homs, n_unsolved)
+  select(city_state, n_total_homs, n_unsolved) %>%
+  filter(city_state != "Tulsa, AL")
 
 ```
 
@@ -70,10 +78,64 @@ n_homs =
 
 bmore_unsolved =
   n_homs %>% 
-  filter(city_state == "Baltimore, MD") %>%
-  ungroup() %>% 
-  select(n_unsolved, n_total_homs) %>% 
-  prop.test(alternative = "two.sided", conf.level = 0.95, correct = FALSE)
+  filter(city_state == "Baltimore, MD")
+
+prop_results = prop.test(x = bmore_unsolved$n_unsolved, n = bmore_unsolved$n_total_homs, alternative = "two.sided", conf.level = 0.95, correct = FALSE) %>% 
+  broom::tidy() %>% 
+  mutate(conf_int = str_c(round((conf.low*100), 2), ", ", round((conf.high*100), 2))) %>% 
+  select(estimate, conf_int)
+
+```
+
+#### Writing a Function to Estimate Proportion Unsolved Murders in All Cities
+
+```{r define fxn}
+
+city_prop_unsolved = function(cityname) {
+  city_unsolved =
+    n_homs %>% 
+    filter(city_state == cityname)
+  
+  prop_results =
+    prop.test(x = city_unsolved %>% pull(n_unsolved), 
+              n = city_unsolved %>% pull(n_total_homs), 
+              alternative = "two.sided", 
+              conf.level = 0.95, 
+              correct = FALSE) %>% 
+  broom::tidy() %>% 
+  mutate(conf_int = 
+           str_c(round((conf.low*100), 2), ", ", round((conf.high*100), 2))) %>% 
+  select(estimate, conf.low, conf.high, conf_int) %>% 
+    mutate(city_name = cityname) %>% 
+    as.tibble()
+  return(prop_results)
+}
+
+# test the function!
+city_prop_unsolved(cityname = "Atlanta, GA")
+
+```
+
+#### Calculating the Proportion of Unsolved Homicides with CIs for All Cities
+
+```{r}
+
+all_cities_props = map(n_homs$city_state, city_prop_unsolved) %>% 
+  bind_rows()
+
+```
+
+#### Plotting Estimated Proportions of Unsolved Homicides in U.S. Cities
+
+```{r plotting homs data}
+
+all_cities_props %>% 
+  mutate(city_name = fct_reorder(city_name, estimate)) %>% 
+  ggplot(aes(x = city_name, y = estimate)) +
+  theme(axis.text.x = element_text(angle = 90, vjust = 0.5, hjust = 1)) +
+  geom_point() +
+  geom_errorbar(aes(ymin = conf.low, 
+                    ymax = conf.high))
 
 ```
 
@@ -89,10 +151,57 @@ Create a tidy dataframe containing data from all participants, including the sub
 
 Make a spaghetti plot showing observations on each subject over time, and comment on differences between groups.
 
+THIS IS SUPER WRONG 
 
 ```{r}
 
+read_trial = function(x){
+  path = str_c("./data/", x)
+  read.csv(path)
+}
 
 
+read_trialv2 = function(x){
+  read.csv("./data/")
+}
+  
+  
+ # output_df = read.csv()
+
+file_names_df =
+  tibble(
+    file_name = list.files("data")
+  )
+
+test = read_trial(file_names_df)
+
+for (i in 1:20) {
+  output[[i]] = read_trial(file_names_df[[i]])
+}
+
+for (i in 1:4) {
+  output[[i]] = mean_and_sd(list_norms[[i]])
+}
+
+
+
+
+file_names_df %>% 
+  read_trial(x = file_name)
+
+  
+
+read_data = map(file_names_df, read_trial)
+  
+file_names_df %>% 
+  filter(file_name == "con_01.csv") %>%
+  mutate(path = str_c("./data/", file_name)) %>% 
+  read.csv("path")
+```
+
+```{r}
+
+path = str_c("./data/", file_names_df[[1]]) %>% 
+  return(path)
 ```
 
