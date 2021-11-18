@@ -2,7 +2,7 @@
 title: "P8105 Homework 5: Iteration"
 author: "Catherine Lucey (cml2270)"
 date: "11/11/2021"
-output: html_document
+output: github_document
 ---
 
 # Setup
