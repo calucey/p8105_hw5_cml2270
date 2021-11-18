@@ -103,9 +103,7 @@ city_prop_unsolved = function(cityname) {
               conf.level = 0.95, 
               correct = FALSE) %>% 
   broom::tidy() %>% 
-  mutate(conf_int = 
-           str_c(round((conf.low*100), 2), ", ", round((conf.high*100), 2))) %>% 
-  select(estimate, conf.low, conf.high, conf_int) %>% 
+  select(estimate, conf.low, conf.high) %>% 
     mutate(city_name = cityname) %>% 
     as.tibble()
   return(prop_results)
@@ -153,37 +151,82 @@ Make a spaghetti plot showing observations on each subject over time, and commen
 
 THIS IS SUPER WRONG 
 
-```{r}
 
-read_trial = function(x){
-  path = str_c("./data/", x)
-  read.csv(path)
-}
-
-
-read_trialv2 = function(x){
-  read.csv("./data/")
-}
-  
-  
- # output_df = read.csv()
+```{r error = TRUE}
 
 file_names_df =
   tibble(
     file_name = list.files("data")
   )
 
-test = read_trial(file_names_df)
+output_df = map_df(file_names_df, read.csv)
 
-for (i in 1:20) {
-  output[[i]] = read_trial(file_names_df[[i]])
+read_trialv6 = function(file_name){
+  path = str_c("'", "data/", file_name, "'")
+  read.csv(path)
+}
+
+output_df = map_df(file_names_df, read_trialv6)
+
+```
+
+
+```{r error = TRUE}
+
+test1 = read.csv('data/con_01.csv')
+
+read_trial = function(x){
+  path = str_c("./data/", x)
+}
+
+read_trialv3 = function(file_name){
+  path = str_c("'", "data/", file_name, "'")
+  read.csv(path)
+}
+
+fxn_output = map(file_names_df, read_trialv3)
+
+output_df = map(file_names_df, read_trialv3)
+
+read_trialv3(file_names_df)
+
+read_trialv2 = function(file_name){
+  read.csv2(file_name)
+}
+
+read_trialv4 = function(path){
+  read.csv(path)
+  return()
+}
+
+read_trialv5 = function(file_name){
+  path = paste("data/", file_name,".csv", sep = "")
+  read.csv(path)
+}
+
+output_df = map(file_names_df, read_trialv5)
+  
+  
+ # output_df = read.csv()
+
+
+
+
+test = read_trial(file_names_df[[1]])
+
+CODE FROM THE INTERNET:
+path<-paste(directory,"/", file_name,".csv",sep="")
+
+
+
+for (file_name in file_names_df) {
+  output_df = 
+      read_trialv3(file_name)
 }
 
 for (i in 1:4) {
   output[[i]] = mean_and_sd(list_norms[[i]])
 }
-
-
 
 
 file_names_df %>% 
@@ -203,5 +246,48 @@ file_names_df %>%
 
 path = str_c("./data/", file_names_df[[1]]) %>% 
   return(path)
+```
+
+# Problem 3: Iteratively Fixing Missing Values in Iris Data
+
+#### Loading the Data and Introducing Missing Values
+
+```{r}
+set.seed(10)
+
+iris_with_missing = iris %>% 
+  map_df(~replace(.x, sample(1:150, 20), NA)) %>%
+  mutate(Species = as.character(Species)) %>% 
+  janitor::clean_names()
+```
+
+#### Fixing the Dataset
+
+There are two cases to address:
+
+    For numeric variables, you should fill in missing values with the mean of non-missing values
+    For character variables, you should fill in missing values with "virginica"
+
+Write a function that takes a vector as an argument; replaces missing values using the rules defined above; and returns the resulting vector. Apply this function to the columns of iris_with_missing using a map statement.
+
+```{r}
+
+add_missing = function(x){
+  
+  if (is.double(x)) {
+    avg = round(mean(x, na.rm = TRUE), digits = 2)
+    x = replace_na(x, avg)
+    return(x)
+  }
+  
+  if (is.character(x)) {
+    x = replace_na(x, "virginica")
+    return(x)
+  }
+}
+
+replaced_df = map_df(iris_with_missing, add_missing)
+
+
 ```
 
